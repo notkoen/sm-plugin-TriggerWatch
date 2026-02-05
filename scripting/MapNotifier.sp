@@ -6,9 +6,6 @@
 #include <cstrike>
 #include <clientprefs>
 #include <multicolors>
-#undef REQUIRE_PLUGIN
-#tryinclude <EntWatch>
-#define REQUIRE_PLUGIN
 
 #define CONSOLE 0
 #define CHAT 1
@@ -305,12 +302,10 @@ public void TriggerTouched(const char[] output, int caller, int activator, float
 
 public void ButtonPressed(const char[] output, int caller, int activator, float delay)
 {
-#if defined _EntWatch_include
-	if (!IsValidClient(activator) || !IsValidEntity(caller) || EntWatch_IsSpecialItem(caller))
-#else
 	if (!IsValidClient(activator) || !IsValidEntity(caller))
-#endif
+	{
 		return;
+	}
 
 	int currentTime = GetTime();
 
