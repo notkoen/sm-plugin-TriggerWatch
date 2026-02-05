@@ -12,8 +12,7 @@
 
 bool g_bLate = false;
 
-ConVar g_hCVar_BlockSpam;
-ConVar g_hCVar_BlockSpamDelay;
+ConVar g_hCVar_SpamDelay;
 
 Handle g_hPreferences = INVALID_HANDLE;
 
@@ -42,8 +41,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnPluginStart()
 {
 	/* CONVARS */
-	g_hCVar_BlockSpam = CreateConVar("sm_buttonnotifier_block_spam", "1", "Blocks spammers abusing certain buttons", FCVAR_NONE, true, 0.0, true, 1.0);
-	g_hCVar_BlockSpamDelay = CreateConVar("sm_buttonnotifier_block_spam_delay", "5", "Time to wait before notifying the next button press", FCVAR_NONE, true, 1.0, true, 60.0);
+	g_hCVar_SpamDelay = CreateConVar("sm_notifier_delay", "5", "Time to wait before notifying the next button press", FCVAR_NONE, true, 1.0, true, 60.0);
 
 	AutoExecConfig(true);
 
@@ -325,7 +323,7 @@ public void ButtonPressed(const char[] output, int caller, int activator, float 
 	ReplaceString(userid, sizeof(userid), "STEAM_", "", true);
 
 	// activator (client) is spamming the button
-	if (g_hCVar_BlockSpam.BoolValue && g_ilastButtonUse[activator] != -1 && ((currentTime - g_ilastButtonUse[activator]) <= g_hCVar_BlockSpamDelay.IntValue))
+	if (g_ilastButtonUse[activator] != -1 && ((currentTime - g_ilastButtonUse[activator]) <= g_hCVar_SpamDelay.IntValue))
 	{
 		// if the delay time is passed, we reset the time
 		if (g_iwaitBeforeButtonUse[activator] != -1 && g_iwaitBeforeButtonUse[activator] <= currentTime)
@@ -352,7 +350,7 @@ public void ButtonPressed(const char[] output, int caller, int activator, float 
 			}
 
 			PrintToServer("[Button Notifier] %N (%s) is spamming %s", activator, userid, entity);
-			g_iwaitBeforeButtonUse[activator] = currentTime + g_hCVar_BlockSpamDelay.IntValue;
+			g_iwaitBeforeButtonUse[activator] = currentTime + g_hCVar_SpamDelay.IntValue;
 		}
 	}
 	else
