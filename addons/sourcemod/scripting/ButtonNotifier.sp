@@ -1,3 +1,4 @@
+#pragma newdecls required
 #pragma semicolon 1
 
 #include <sourcemod>
@@ -9,15 +10,13 @@
 #tryinclude <EntWatch>
 #define REQUIRE_PLUGIN
 
-#pragma newdecls required
-
 #define CONSOLE 0
 #define CHAT 1
 
 bool g_bLate = false;
 
-ConVar g_cBlockSpam;
-ConVar g_cBlockSpamDelay;
+ConVar g_hCVar_BlockSpam;
+ConVar g_hCVar_BlockSpamDelay;
 
 Handle g_hPreferences = INVALID_HANDLE;
 
@@ -46,8 +45,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnPluginStart()
 {
 	/* CONVARS */
-	g_cBlockSpam = CreateConVar("sm_buttonnotifier_block_spam", "1", "Blocks spammers abusing certain buttons", FCVAR_NONE, true, 0.0, true, 1.0);
-	g_cBlockSpamDelay = CreateConVar("sm_buttonnotifier_block_spam_delay", "5", "Time to wait before notifying the next button press", FCVAR_NONE, true, 1.0, true, 60.0);
+	g_hCVar_BlockSpam = CreateConVar("sm_buttonnotifier_block_spam", "1", "Blocks spammers abusing certain buttons", FCVAR_NONE, true, 0.0, true, 1.0);
+	g_hCVar_BlockSpamDelay = CreateConVar("sm_buttonnotifier_block_spam_delay", "5", "Time to wait before notifying the next button press", FCVAR_NONE, true, 1.0, true, 60.0);
 
 	AutoExecConfig(true);
 
@@ -59,12 +58,16 @@ public void OnPluginStart()
 	HookEvent("round_start", Event_RoundStart, EventHookMode_Pre);
 	
 	if (!g_bLate)
+	{
 		return;
+	}
 
 	for (int i = 1; i < MaxClients; i++)
 	{
 		if (!IsClientConnected(i) || IsFakeClient(i) || !AreClientCookiesCached(i))
+		{
 			continue;
+		}
 
 		ReadClientCookies(i);
 	}
@@ -174,9 +177,13 @@ public int NotifierSettingHandler(Menu menu, MenuAction action, int param1, int 
 			if (strcmp(info, "buttons", false) == 0)
 			{
 				if (g_iButtonsDisplay[param1] == CONSOLE)
+				{
 					FormatEx(type, sizeof(type), "Console");
+				}
 				else
+				{
 					FormatEx(type, sizeof(type), "Chat");
+				}
 
 				FormatEx(display, sizeof(display), "Buttons: %s", type);
 				return RedrawMenuItem(display);
@@ -184,9 +191,13 @@ public int NotifierSettingHandler(Menu menu, MenuAction action, int param1, int 
 			else if (strcmp(info, "triggers", false) == 0)
 			{
 				if (g_iTriggersDisplay[param1] == CONSOLE)
+				{
 					FormatEx(type, sizeof(type), "Console");
+				}
 				else
+				{
 					FormatEx(type, sizeof(type), "Chat");
+				}
 
 				FormatEx(display, sizeof(display), "Triggers: %s", type);
 				return RedrawMenuItem(display);
@@ -250,7 +261,9 @@ public Action Timer_HookButtons(Handle timer)
 public void TriggerTouched(const char[] output, int caller, int activator, float delay)
 {
 	if (g_bTriggered[caller] || !IsValidClient(activator))
+	{
 		return;
+	}
 
 	g_bTriggered[caller] = true;
 
@@ -262,7 +275,9 @@ public void TriggerTouched(const char[] output, int caller, int activator, float
 	GetEntPropString(caller, Prop_Data, "m_iName", entity, sizeof(entity));
 
 	if (strcmp(entity, "", false) == 0)
+	{
 		FormatEx(entity, sizeof(entity), "trigger #%d", caller);
+	}
 
 	char userid[64];
 	GetClientAuthId(activator, AuthId_Steam3, userid, sizeof(userid), false);
@@ -272,12 +287,16 @@ public void TriggerTouched(const char[] output, int caller, int activator, float
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if(IsClientConnected(i) && IsClientInGame(i) && (IsClientSourceTV(i) || GetAdminFlag(GetUserAdmin(i), Admin_Generic)))
+		if (IsClientConnected(i) && IsClientInGame(i) && (IsClientSourceTV(i) || GetAdminFlag(GetUserAdmin(i), Admin_Generic)))
 		{
 			if (g_iTriggersDisplay[i] == CONSOLE)
+			{
 				PrintToConsole(i, "[Notifier - Trigger %s] %N (%s) triggered %s", sClassname, activator, userid, entity);
+			}
 			else
+			{
 				CPrintToChat(i, "{red}[Notifier - Trigger %s] {white}%N {red}({grey}%s{red}) {lightgreen}triggered {blue}%s", sClassname, activator, userid, entity);
+			}
 		}
 	}
 
@@ -299,7 +318,9 @@ public void ButtonPressed(const char[] output, int caller, int activator, float 
 	GetEntPropString(caller, Prop_Data, "m_iName", entity, sizeof(entity));
 
 	if (strcmp(entity, "", false) == 0)
+	{
 		FormatEx(entity, sizeof(entity), "button #%d", caller);
+	}
 
 	char userid[64];
 	GetClientAuthId(activator, AuthId_Steam3, userid, sizeof(userid), false);
@@ -309,7 +330,7 @@ public void ButtonPressed(const char[] output, int caller, int activator, float 
 	ReplaceString(userid, sizeof(userid), "STEAM_", "", true);
 
 	// activator (client) is spamming the button
-	if (g_cBlockSpam.BoolValue && g_ilastButtonUse[activator] != -1 && ((currentTime - g_ilastButtonUse[activator]) <= g_cBlockSpamDelay.IntValue))
+	if (g_hCVar_BlockSpam.BoolValue && g_ilastButtonUse[activator] != -1 && ((currentTime - g_ilastButtonUse[activator]) <= g_hCVar_BlockSpamDelay.IntValue))
 	{
 		// if the delay time is passed, we reset the time
 		if (g_iwaitBeforeButtonUse[activator] != -1 && g_iwaitBeforeButtonUse[activator] <= currentTime)
@@ -320,31 +341,39 @@ public void ButtonPressed(const char[] output, int caller, int activator, float 
 		// if everything is okay send a first alert
 		if (g_iwaitBeforeButtonUse[activator] == -1)
 		{
-			for(int i = 1; i <= MaxClients; i++)
+			for (int i = 1; i <= MaxClients; i++)
 			{
-				if(IsClientConnected(i) && IsClientInGame(i) && (IsClientSourceTV(i) || GetAdminFlag(GetUserAdmin(i), Admin_Generic)))
+				if (IsClientConnected(i) && IsClientInGame(i) && (IsClientSourceTV(i) || GetAdminFlag(GetUserAdmin(i), Admin_Generic)))
 				{
 					if (g_iTriggersDisplay[i] == CONSOLE)
+					{
 						PrintToConsole(i, "[Button Notifier] %N (%s) is spamming %s", activator, userid, entity);
+					}
 					else
+					{
 						CPrintToChat(i, "{red}[Button Notifier] {white}%N {red}({grey}%s{red}) {lightgreen}is spamming {blue}%s", activator, userid, entity);
+					}
 				}
 			}
 
 			PrintToServer("[Button Notifier] %N (%s) is spamming %s", activator, userid, entity);
-			g_iwaitBeforeButtonUse[activator] = currentTime + g_cBlockSpamDelay.IntValue;
+			g_iwaitBeforeButtonUse[activator] = currentTime + g_hCVar_BlockSpamDelay.IntValue;
 		}
 	}
 	else
 	{
-		for(int i = 1; i <= MaxClients; i++)
+		for (int i = 1; i <= MaxClients; i++)
 		{
-			if(IsClientConnected(i) && IsClientInGame(i) && (IsClientSourceTV(i) || GetAdminFlag(GetUserAdmin(i), Admin_Generic)))
+			if (IsClientConnected(i) && IsClientInGame(i) && (IsClientSourceTV(i) || GetAdminFlag(GetUserAdmin(i), Admin_Generic)))
 			{
 				if (g_iButtonsDisplay[i] == CONSOLE)
+				{
 					PrintToConsole(i, "[Button Notifier] %N (%s) triggered %s", activator, userid, entity);
+				}
 				else
+				{
 					CPrintToChat(i, "{red}[Button Notifier] {white}%N {red}({grey}%s{red}) {lightgreen}triggered {blue}%s", activator, userid, entity);
+				}
 			}
 		}
 
@@ -360,5 +389,6 @@ bool IsValidClient(int client, bool nobots = true)
 	{
 		return false;
 	}
+
 	return IsClientInGame(client);
 }
