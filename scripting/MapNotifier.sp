@@ -14,7 +14,7 @@ bool g_bLate = false;
 
 ConVar g_hCVar_SpamDelay;
 
-Handle g_hPreferences = INVALID_HANDLE;
+Cookie g_hCookie_DisplayType;
 
 int g_iButtonsDisplay[MAXPLAYERS+1];
 int g_iTriggersDisplay[MAXPLAYERS+1];
@@ -27,7 +27,7 @@ public Plugin myinfo =
 {
 	name = "Map Notifier",
 	author = "koen, Original: Silence, maxime1907, .Rushaway",
-	description = "Notify players of map interaction",
+	description = "Notify players of map interactions",
 	version = "1.0",
 	url = ""
 };
@@ -47,7 +47,7 @@ public void OnPluginStart()
 
 	/* COOKIES */
 	SetCookieMenuItem(CookieHandler, 0, "Buttons Notifier Settings");
-	g_hPreferences = RegClientCookie("bn_preferences", "Button and Trigger notification preferences", CookieAccess_Protected);
+	g_hCookie_DisplayType = new Cookie("notifier_display", "Map notifier display method", CookieAccess_Private);
 
 	/* HOOKS */
 	HookEvent("round_start", Event_RoundStart, EventHookMode_Pre);
@@ -106,7 +106,7 @@ public void OnClientCookiesCached(int client)
 public void ReadClientCookies(int client)
 {
 	char sValue[32];
-	GetClientCookie(client, g_hPreferences, sValue, 32);
+	g_hCookie_DisplayType.Get(client, sValue, sizeof(sValue));
 
 	if (strlen(sValue) >= 2)
 	{
@@ -129,7 +129,7 @@ public void SetClientCookies(int client)
 {
 	char sValue[8];
 	FormatEx(sValue, sizeof(sValue), "%d%d", g_iButtonsDisplay[client], g_iTriggersDisplay[client]);
-	SetClientCookie(client, g_hPreferences, sValue);
+	g_hCookie_DisplayType.Set(client, sValue);
 }
 
 public void CookieHandler(int client, CookieMenuAction action, any info, char[] buffer, int maxlen)
